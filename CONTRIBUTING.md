@@ -130,7 +130,7 @@ The symlink in step 2 ensures `hooks.json` (which registers PostToolUse, PreComp
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Read|Grep|WebFetch|Task|mcp__plugin_context-mode_context-mode__ctx_execute|mcp__plugin_context-mode_context-mode__ctx_execute_file|mcp__plugin_context-mode_context-mode__ctx_batch_execute",
+        "matcher": "Bash|Read|Grep|WebFetch|Agent|Task|mcp__plugin_context-mode_context-mode__ctx_execute|mcp__plugin_context-mode_context-mode__ctx_execute_file|mcp__plugin_context-mode_context-mode__ctx_batch_execute",
         "hooks": [
           {
             "type": "command",
@@ -152,8 +152,11 @@ Replace `/path/to/your/clone/claude-context-mode` with your actual local path.
 Change the version in your local clone to something recognizable:
 
 ```bash
-# In package.json: "version": "0.9.23-dev"
-# In src/server.ts: const VERSION = "0.9.23-dev";
+# All 4 files must be updated:
+# 1. package.json:              "version": "0.9.23-dev"
+# 2. src/server.ts:             const VERSION = "0.9.23-dev";
+# 3. .claude-plugin/plugin.json:     "version": "0.9.23-dev"
+# 4. .claude-plugin/marketplace.json: "version": "0.9.23-dev"
 ```
 
 Then rebuild:
