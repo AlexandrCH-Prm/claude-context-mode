@@ -1,12 +1,37 @@
 /**
  * Shared session helpers for context-mode hooks.
- * Used by posttooluse.mjs, precompact.mjs, and sessionstart.mjs.
+ * Used by posttooluse.mjs, precompact.mjs, sessionstart.mjs,
+ * and platform-specific hooks (Gemini CLI, VS Code Copilot).
+ *
+ * All functions accept an optional `opts` parameter for platform-specific
+ * configuration. Defaults to Claude Code settings for backward compatibility.
  */
 
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
+
+/** Claude Code platform options (default). */
+const CLAUDE_OPTS = {
+  configDir: ".claude",
+  projectDirEnv: "CLAUDE_PROJECT_DIR",
+  sessionIdEnv: "CLAUDE_SESSION_ID",
+};
+
+/** Gemini CLI platform options. */
+export const GEMINI_OPTS = {
+  configDir: ".gemini",
+  projectDirEnv: "GEMINI_PROJECT_DIR",
+  sessionIdEnv: undefined,
+};
+
+/** VS Code Copilot platform options. */
+export const VSCODE_OPTS = {
+  configDir: ".vscode",
+  projectDirEnv: "VSCODE_CWD",
+  sessionIdEnv: undefined,
+};
 
 /**
  * Read all of stdin as a string (event-based, cross-platform safe).
@@ -23,28 +48,39 @@ export function readStdin() {
 }
 
 /**
- * Derive session ID from hook input.
- * Priority: transcript_path UUID > session_id field > CLAUDE_SESSION_ID env > ppid fallback.
+ * Get the project directory for the current platform.
+ * Uses the platform-specific env var, falls back to cwd.
  */
-export function getSessionId(input) {
+export function getProjectDir(opts = CLAUDE_OPTS) {
+  return process.env[opts.projectDirEnv] || process.cwd();
+}
+
+/**
+ * Derive session ID from hook input.
+ * Priority: transcript_path UUID > sessionId (camelCase) > session_id > env var > ppid fallback.
+ */
+export function getSessionId(input, opts = CLAUDE_OPTS) {
   if (input.transcript_path) {
     const match = input.transcript_path.match(/([a-f0-9-]{36})\.jsonl$/);
     if (match) return match[1];
   }
+  if (input.sessionId) return input.sessionId;
   if (input.session_id) return input.session_id;
-  if (process.env.CLAUDE_SESSION_ID) return process.env.CLAUDE_SESSION_ID;
+  if (opts.sessionIdEnv && process.env[opts.sessionIdEnv]) {
+    return process.env[opts.sessionIdEnv];
+  }
   return `pid-${process.ppid}`;
 }
 
 /**
  * Return the per-project session DB path.
  * Creates the directory if it doesn't exist.
- * Path: ~/.claude/context-mode/sessions/<SHA256(CLAUDE_PROJECT_DIR)[:16]>.db
+ * Path: ~/<configDir>/context-mode/sessions/<SHA256(projectDir)[:16]>.db
  */
-export function getSessionDBPath() {
-  const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+export function getSessionDBPath(opts = CLAUDE_OPTS) {
+  const projectDir = getProjectDir(opts);
   const hash = createHash("sha256").update(projectDir).digest("hex").slice(0, 16);
-  const dir = join(homedir(), ".claude", "context-mode", "sessions");
+  const dir = join(homedir(), opts.configDir, "context-mode", "sessions");
   mkdirSync(dir, { recursive: true });
   return join(dir, `${hash}.db`);
 }
@@ -52,12 +88,12 @@ export function getSessionDBPath() {
 /**
  * Return the per-project session events file path.
  * Used by sessionstart hook (write) and MCP server (read + auto-index).
- * Path: ~/.claude/context-mode/sessions/<SHA256(CLAUDE_PROJECT_DIR)[:16]>-events.md
+ * Path: ~/<configDir>/context-mode/sessions/<SHA256(projectDir)[:16]>-events.md
  */
-export function getSessionEventsPath() {
-  const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+export function getSessionEventsPath(opts = CLAUDE_OPTS) {
+  const projectDir = getProjectDir(opts);
   const hash = createHash("sha256").update(projectDir).digest("hex").slice(0, 16);
-  const dir = join(homedir(), ".claude", "context-mode", "sessions");
+  const dir = join(homedir(), opts.configDir, "context-mode", "sessions");
   mkdirSync(dir, { recursive: true });
   return join(dir, `${hash}-events.md`);
 }

@@ -21,13 +21,17 @@ https://github.com/user-attachments/assets/07013dbf-07c0-4ef1-974a-33ea1207637b
 | Feature | Claude Code | Gemini CLI | VS Code Copilot | OpenCode | Codex CLI |
 |---|:---:|:---:|:---:|:---:|:---:|
 | MCP Server | Yes | Yes | Yes | Yes | Yes |
-| PreToolUse Hook | Yes | Yes | Yes | Yes | -- |
-| PostToolUse Hook | Yes | Yes | Yes | Yes | -- |
+| PreToolUse Hook | Yes | Yes | Yes | Plugin | -- |
+| PostToolUse Hook | Yes | Yes | Yes | Plugin | -- |
 | SessionStart Hook | Yes | Yes | Yes | -- | -- |
-| Can Modify Args | Yes | Yes | Yes | Yes | -- |
-| Can Block Tools | Yes | Yes | Yes | Yes | -- |
+| Can Modify Args | Yes | Yes | Yes | Plugin | -- |
+| Can Block Tools | Yes | Yes | Yes | Plugin | -- |
 | Slash Commands | Yes | -- | -- | -- | -- |
 | Plugin Marketplace | Yes | -- | -- | -- | -- |
+
+> **OpenCode** uses a TypeScript plugin paradigm — hooks run as in-process functions via `tool.execute.before`, `tool.execute.after`, and `experimental.session.compacting`, providing the same routing enforcement and session continuity as shell-based hooks. SessionStart is not yet available ([#14808](https://github.com/sst/opencode/issues/14808)), but compaction recovery works via the plugin's compacting hook.
+>
+> **Codex CLI** does not support hooks. It relies solely on routing instruction files (`AGENTS.md`) for enforcement (~60% compliance).
 
 ### Routing Enforcement
 
@@ -38,7 +42,7 @@ Hooks intercept tool calls programmatically — they can block dangerous command
 | Claude Code | Yes (auto) | [`CLAUDE.md`](configs/claude-code/CLAUDE.md) | **~98% saved** | ~60% saved |
 | Gemini CLI | Yes | [`GEMINI.md`](configs/gemini-cli/GEMINI.md) | **~98% saved** | ~60% saved |
 | VS Code Copilot | Yes | [`copilot-instructions.md`](configs/vscode-copilot/copilot-instructions.md) | **~98% saved** | ~60% saved |
-| OpenCode | Partial (plugin) | [`AGENTS.md`](configs/opencode/AGENTS.md) | **~95% saved** | ~60% saved |
+| OpenCode | Plugin | [`AGENTS.md`](configs/opencode/AGENTS.md) | **~98% saved** | ~60% saved |
 | Codex CLI | -- | [`AGENTS.md`](configs/codex/AGENTS.md) | -- | ~60% saved |
 
 Without hooks, one unrouted `curl` or Playwright snapshot can dump 56 KB into context — wiping out an entire session's worth of savings.
@@ -207,9 +211,9 @@ The `mcp` entry gives you the 6 sandbox tools. The `plugin` entry enables hooks 
 
 **Step 2 — Restart OpenCode.** On first run, an `AGENTS.md` routing instructions file is auto-created in your project root. This works alongside the plugin as a parallel enforcement layer — the plugin intercepts tool calls at runtime, while `AGENTS.md` guides the model's tool preferences from session start.
 
-> **Why the plugin matters:** Without the `plugin` entry, context-mode has no way to intercept tool calls. The model can run raw `curl`, read large files directly, or dump unprocessed output into context — ignoring `AGENTS.md` instructions. With the plugin, `tool.execute.before` fires on every tool call and blocks or redirects data-heavy commands before they execute.
+> **Why the plugin matters:** Without the `plugin` entry, context-mode has no way to intercept tool calls. The model can run raw `curl`, read large files directly, or dump unprocessed output into context — ignoring `AGENTS.md` instructions. With the plugin, `tool.execute.before` fires on every tool call and blocks or redirects data-heavy commands before they execute. The `experimental.session.compacting` hook builds and injects resume snapshots when the conversation compacts, preserving session state.
 >
-> Note: OpenCode's SessionStart hook is not yet available ([#14808](https://github.com/sst/opencode/issues/14808)), so the `AGENTS.md` file is the primary way context-mode instructions reach the model at session start. The plugin handles everything after that.
+> Note: OpenCode's SessionStart hook is not yet available ([#14808](https://github.com/sst/opencode/issues/14808)), so startup/resume session restore is not supported — the `AGENTS.md` file is the primary way context-mode instructions reach the model at session start. Compaction recovery works fully via the plugin.
 
 </details>
 
@@ -293,13 +297,13 @@ Session continuity requires 4 hooks working together:
 
 | Hook | Role | Claude Code | Gemini CLI | VS Code Copilot | OpenCode | Codex CLI |
 |---|---|:---:|:---:|:---:|:---:|:---:|
-| **PostToolUse** | Captures events after each tool call | Yes | Yes | Yes | Yes | -- |
+| **PostToolUse** | Captures events after each tool call | Yes | Yes | Yes | Plugin | -- |
 | **UserPromptSubmit** | Captures user decisions and corrections | Yes | -- | -- | -- | -- |
-| **PreCompact** | Builds snapshot before compaction | Yes | Yes | Yes | -- | -- |
+| **PreCompact** | Builds snapshot before compaction | Yes | Yes | Yes | Plugin | -- |
 | **SessionStart** | Restores state after compaction | Yes | Yes | Yes | -- | -- |
-| | **Session completeness** | **Full** | **High** | **High** | **Partial** | **--** |
+| | **Session completeness** | **Full** | **High** | **High** | **High** | **--** |
 
-> **Note:** Full session continuity (capture + snapshot + restore) works on **Claude Code**, **Gemini CLI**, and **VS Code Copilot**. OpenCode captures events but cannot yet restore them after compaction (SessionStart not available — [#14808](https://github.com/sst/opencode/issues/14808)). Codex CLI has no hook support, so session tracking is not available.
+> **Note:** Full session continuity (capture + snapshot + restore) works on **Claude Code**, **Gemini CLI**, **VS Code Copilot**, and **OpenCode**. OpenCode uses the `experimental.session.compacting` plugin hook for compaction recovery — SessionStart is not yet available ([#14808](https://github.com/sst/opencode/issues/14808)), so startup/resume is not supported. Codex CLI has no hook support, so session tracking is not available.
 
 <details>
 <summary><strong>What gets captured</strong></summary>

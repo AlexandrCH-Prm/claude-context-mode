@@ -16,7 +16,7 @@ import { homedir } from "node:os";
 // Resolve absolute path for imports — relative dynamic imports can fail
 // when Claude Code invokes hooks from a different working directory.
 const HOOK_DIR = new URL(".", import.meta.url).pathname;
-const PKG_SESSION = join(HOOK_DIR, "..", "packages", "session", "dist");
+const PKG_SESSION = join(HOOK_DIR, "..", "build", "session");
 
 const DEBUG_LOG = join(homedir(), ".claude", "context-mode", "posttooluse-debug.log");
 

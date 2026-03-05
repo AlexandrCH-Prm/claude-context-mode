@@ -1,12 +1,57 @@
 #!/usr/bin/env node
 /**
- * VS Code Copilot PostToolUse hook — session event capture
- * Thin wrapper around shared session logic.
- * Session capture logic is in the compiled build.
- * For now, passthrough — session events are captured via MCP server.
+ * VS Code Copilot PostToolUse hook — session event capture.
+ *
+ * Captures session events from tool calls (13 categories) and stores
+ * them in the per-project SessionDB for later resume snapshot building.
+ *
+ * Must be fast (<20ms). No network, no LLM, just SQLite writes.
  */
 
-import { readStdin } from "../core/stdin.mjs";
+import { readStdin, getSessionId, getSessionDBPath, getProjectDir, VSCODE_OPTS } from "../session-helpers.mjs";
+import { appendFileSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
 
-const raw = await readStdin();
-// Silent passthrough — no stdout output
+const HOOK_DIR = new URL(".", import.meta.url).pathname;
+const PKG_SESSION = join(HOOK_DIR, "..", "..", "build", "session");
+const OPTS = VSCODE_OPTS;
+const DEBUG_LOG = join(homedir(), ".vscode", "context-mode", "posttooluse-debug.log");
+
+try {
+  const raw = await readStdin();
+  const input = JSON.parse(raw);
+
+  appendFileSync(DEBUG_LOG, `[${new Date().toISOString()}] CALL: ${input.tool_name}\n`);
+
+  const { extractEvents } = await import(join(PKG_SESSION, "extract.js"));
+  const { SessionDB } = await import(join(PKG_SESSION, "db.js"));
+
+  const dbPath = getSessionDBPath(OPTS);
+  const db = new SessionDB({ dbPath });
+  const sessionId = getSessionId(input, OPTS);
+
+  db.ensureSession(sessionId, getProjectDir(OPTS));
+
+  const events = extractEvents({
+    tool_name: input.tool_name,
+    tool_input: input.tool_input ?? {},
+    tool_response: typeof input.tool_response === "string"
+      ? input.tool_response
+      : JSON.stringify(input.tool_response ?? ""),
+    tool_output: input.tool_output,
+  });
+
+  for (const event of events) {
+    db.insertEvent(sessionId, event, "PostToolUse");
+  }
+
+  appendFileSync(DEBUG_LOG, `[${new Date().toISOString()}] OK: ${input.tool_name} → ${events.length} events\n`);
+  db.close();
+} catch (err) {
+  try {
+    appendFileSync(DEBUG_LOG, `[${new Date().toISOString()}] ERR: ${err?.message || err}\n`);
+  } catch { /* silent */ }
+}
+
+// PostToolUse — no stdout output

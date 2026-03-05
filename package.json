@@ -26,6 +26,11 @@
   },
   "homepage": "https://github.com/mksglu/claude-context-mode#readme",
   "bugs": "https://github.com/mksglu/claude-context-mode/issues",
+  "main": "./build/cli.js",
+  "exports": {
+    ".": "./build/cli.js",
+    "./plugin": "./build/opencode-plugin.js"
+  },
   "bin": {
     "context-mode": "./build/cli.js"
   },

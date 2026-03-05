@@ -5,5 +5,6 @@
       "command": "npx",
       "args": ["-y", "context-mode"]
     }
-  }
+  },
+  "plugin": ["context-mode"]
 }

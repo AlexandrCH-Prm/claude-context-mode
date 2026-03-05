@@ -21,7 +21,7 @@ import { homedir } from "node:os";
 
 // Resolve absolute path for imports
 const HOOK_DIR = new URL(".", import.meta.url).pathname;
-const PKG_SESSION = join(HOOK_DIR, "..", "packages", "session", "dist");
+const PKG_SESSION = join(HOOK_DIR, "..", "build", "session");
 
 let additionalContext = ROUTING_BLOCK;
 

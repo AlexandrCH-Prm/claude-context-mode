@@ -3,14 +3,30 @@ description: Suggest a new feature or improvement
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Which platform(s) does this feature apply to?
+      multiple: true
+      options:
+        - All platforms
+        - Claude Code
+        - Gemini CLI
+        - VS Code Copilot
+        - OpenCode
+        - Codex CLI
+    validations:
+      required: true
+
   - type: input
     id: version
     attributes:
       label: context-mode version
       description: |
         Run `/context-mode:ctx-doctor` to check. Make sure you're on the latest before requesting -- it may already be implemented.
-        Also [search existing issues](https://github.com/mksglu/claude-context-mode/issues) to avoid duplicates.
-      placeholder: "e.g. 0.9.17"
+        Also [search existing issues](https://github.com/mksglu/context-mode/issues) to avoid duplicates.
+      placeholder: "e.g. 0.9.23"
     validations:
       required: true
 

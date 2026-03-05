@@ -10,6 +10,17 @@
 
 <!-- Implementation approach. What did you change and why? -->
 
+## Affected platforms
+
+<!-- Check all platforms affected by this change -->
+
+- [ ] Claude Code
+- [ ] Gemini CLI
+- [ ] VS Code Copilot
+- [ ] OpenCode
+- [ ] Codex CLI
+- [ ] All platforms / core MCP server
+
 ## TDD (required)
 
 Every PR must include tests. We follow **red-green-refactor**:
@@ -51,16 +62,25 @@ Our CI runs on **Ubuntu, macOS, and Windows**. Before submitting:
 
 </details>
 
+## Adapter checklist
+
+<!-- If your change affects hooks or adapters, verify: -->
+
+- [ ] Hook scripts work on all affected platforms (`hooks/*.mjs`, `hooks/gemini-cli/`, `hooks/vscode-copilot/`)
+- [ ] Routing instruction files updated if tool names or behavior changed (`configs/*/`)
+- [ ] Adapter tests pass (`tests/adapters/`)
+- [ ] `writeRoutingInstructions()` still works for all adapters
+
 ## Test plan
 
-- [ ] `npm run test:all` passes
+- [ ] `npm test` passes (631+ tests)
 - [ ] `npm run typecheck` passes
 - [ ] `/context-mode:ctx-doctor` — all checks PASS on my local build
-- [ ] Tested in a live Claude Code session with my local MCP server
+- [ ] Tested in a live session with my local MCP server
 
 ### Test output
 
-<!-- Paste the output of `npm run test:all` here -->
+<!-- Paste the output of `npm test` here -->
 
 ```
 ```
@@ -73,14 +93,15 @@ Our CI runs on **Ubuntu, macOS, and Windows**. Before submitting:
 
 <!-- Confirm you followed the local dev workflow from CONTRIBUTING.md -->
 
-- [ ] Pointed `installed_plugins.json` installPath to my local clone
+- [ ] Symlinked plugin cache to my local clone
 - [ ] Updated `settings.json` hook path to my local clone
+- [ ] Deleted `server.bundle.mjs` so `start.mjs` uses `build/server.js`
 - [ ] Killed cached MCP server, verified local server is running
 - [ ] Bumped version in `package.json` and confirmed with `/context-mode:ctx-doctor`
 
 ## Checklist
 
-- [ ] I've checked [existing PRs](https://github.com/mksglu/claude-context-mode/pulls) to make sure this isn't a duplicate
+- [ ] I've checked [existing PRs](https://github.com/mksglu/context-mode/pulls) to make sure this isn't a duplicate
 - [ ] I'm targeting the `main` branch
 - [ ] I've run the full test suite locally
 - [ ] Tests came first (TDD: red then green)
