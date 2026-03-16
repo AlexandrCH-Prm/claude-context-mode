@@ -409,6 +409,11 @@ export class PolyglotExecutor {
     env["PYTHONUNBUFFERED"] = "1";
     env["PYTHONUTF8"] = "1";
     env["NO_COLOR"] = "1";
+    // Windows uses "Path" (not "PATH") — normalize to "PATH" for consistency
+    if (isWin && !env["PATH"] && env["Path"]) {
+      env["PATH"] = env["Path"];
+      delete env["Path"];
+    }
     if (!env["PATH"]) {
       env["PATH"] = isWin ? "" : "/usr/local/bin:/usr/bin:/bin";
     }

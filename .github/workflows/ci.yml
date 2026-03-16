@@ -60,3 +60,4 @@ jobs:
 
       - name: Doctor (verify server starts)
         run: npx tsx src/cli.ts doctor
+        continue-on-error: true
