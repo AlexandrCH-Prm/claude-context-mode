@@ -197,6 +197,27 @@ describe("CLI Hook Path Tests", () => {
   });
 });
 
+// ── native-abi.mjs — ABI caching module packaging ────────────────────
+
+describe("native-abi.mjs — packaging", () => {
+  it("package.json files field includes native-abi.mjs", () => {
+    const pkg = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf-8"));
+    expect(pkg.files).toContain("native-abi.mjs");
+  });
+
+  it("start.mjs imports ensureNativeCompat from native-abi.mjs", () => {
+    const src = readFileSync(resolve(ROOT, "start.mjs"), "utf-8");
+    expect(src).toContain('from "./native-abi.mjs"');
+    expect(src).toContain("ensureNativeCompat");
+  });
+
+  it("native-abi.mjs exists and exports ensureNativeCompat", async () => {
+    expect(existsSync(resolve(ROOT, "native-abi.mjs"))).toBe(true);
+    const mod = await import("../../native-abi.mjs");
+    expect(typeof mod.ensureNativeCompat).toBe("function");
+  });
+});
+
 // ── ABI-aware native binary caching (#148) ────────────────────────────
 
 describe("ABI-aware native binary caching (#148)", () => {
